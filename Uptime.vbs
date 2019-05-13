@@ -12,7 +12,7 @@
 '
 '////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 option explicit
-const VERSION_INFO      = "0.9"
+const VERSION_INFO      = "1.0"
 CheckScriptHost : CheckError("CheckScriptHost")
 
 dim ScriptName
@@ -29,35 +29,38 @@ set cmdparams = wscript.arguments
 dim bCmdSwitch
 
 for argc = 0 to cmdparams.Count - 1
-  bCmdSwitch = false
-  if ((instr(cmdparams(argc), "/") = 1) or (instr(cmdparams(argc), "-") = 1)) then
-    bCmdSwitch = true
-    if ((lcase(mid(cmdparams(argc), 2)) = "h") > 0 OR lcase(instr(cmdparams(argc), "?")) > 0) then
-      call ShowUsage(true)
-      wscript.quit -1
+    bCmdSwitch = false
+    if ((instr(cmdparams(argc), "/") = 1) or (instr(cmdparams(argc), "-") = 1)) then
+        bCmdSwitch = true
+        if ((lcase(mid(cmdparams(argc), 2)) = "h") > 0 OR lcase(instr(cmdparams(argc), "?")) > 0) then
+            call ShowUsage(true)
+            wscript.quit -1
+        end if
     end if
-  end if
 
-  if bCmdSwitch = false then
-    if Computer = "" then
-      Computer = cmdparams(argc)
+    if bCmdSwitch = false then
+        if Computer = "" then
+            Computer = cmdparams(argc)
+        end if
     end if
-  end if
 next
 
 ShowUsage(false)
 
 if(cmdparams.count < 1) then
-  if(Computer = "") then
-    Computer = "."
-  end if
+    if(Computer = "") then
+        Computer = wsh.ExpandEnvironmentStrings("%COMPUTERNAME%")
+    end if
+    if(Computer = "") then
+        Computer = "."
+    end if
 end if
 
 if mid(Computer, 1, 2) = "\\" then
-  Computer = mid(Computer, 3)
+    Computer = mid(Computer, 3)
 end if
 if instr(Computer, "\") > 0 then
-  Computer = Replace(Computer, "\", "")
+    Computer = Replace(Computer, "\", "")
 end if
 
 wscript.stdout.Write "Connecting to \\" & Computer & "..."
@@ -65,7 +68,7 @@ Set WMI = GetObject("winmgmts:\\" & Computer & "\root\cimv2")
 Set OperatingSystems = WMI.ExecQuery("Select * From Win32_PerfFormattedData_PerfOS_System")
  
 For Each OS in OperatingSystems
-  SystemUptime = OS.SystemUpTime
+    SystemUptime = OS.SystemUpTime
 Next
 
 ' Calculate Days: save total seconds
@@ -87,42 +90,41 @@ wscript.stdout.Write vbCRLF & Computer & " has been online for "
 wscript.stdout.WriteLine Days & " days " & Hours & " hours " & Minutes & " minutes " & Seconds & " seconds" 
 
 sub CheckScriptHost
-  dim fso
-  dim strHostName
-  on error resume next
-  set fso = WScript.CreateObject("Scripting.FileSystemObject") : CheckError("Scripting.FileSystemObject")
-  strHostName = fso.GetFileName(wscript.FullName)
+    dim fso
+    dim strHostName
+    on error resume next
+    set fso = WScript.CreateObject("Scripting.FileSystemObject") : CheckError("Scripting.FileSystemObject")
+    strHostName = fso.GetFileName(wscript.FullName)
 
-  if LCase(strHostName) <> "cscript.exe" then
-    wscript.echo "This script was designed to be executed from the command prompt using CSCRIPT.EXE." & vbCRLF & "For example: ""CSCRIPT.EXE """ & wscript.ScriptName & " [Options] [Parameters]""" & vbCRLF & _
-                 "To set CSCRIPT.EXE as the default script host, run the following command at a command prompt, or from the Start/Run option:" & vbCRLF & "       CSCRIPT.exe /H:CSCRIPT /Nologo /S" & vbCRLF & "You can then run any VBScripts without preceding the script with cscript.exe.  " & _
-                 "This makes for a MUCH better IT / Admin experience in automated batch file processing, logon script creation/execution, and many, many, more uses.  You can STILL runs script based in Windows by simply providing " & _
-                 "WSCRIPT <scriptname.vbs> to execute your script in the WINDOWS Scripting Host, however I find that CScript, the Command Line Script Host is MUCH better to work with, if you plan to use vbScripting in " & _
-                 "in your daily maintenance and administrative chores."
-                 wscript.quit 1
-  end if
+    if LCase(strHostName) <> "cscript.exe" then
+        wscript.echo "This script was designed to be executed from the command prompt using CSCRIPT.EXE." & vbCRLF & "For example: ""CSCRIPT.EXE """ & wscript.ScriptName & " [Options] [Parameters]""" & vbCRLF & _
+                     "To set CSCRIPT.EXE as the default script host, run the following command at a command prompt, or from the Start/Run option:" & vbCRLF & "       CSCRIPT.exe /H:CSCRIPT /Nologo /S" & vbCRLF & "You can then run any VBScripts without preceding the script with cscript.exe.  " & _
+                     "This makes for a MUCH better IT / Admin experience in automated batch file processing, logon script creation/execution, and many, many, more uses.  You can STILL runs script based in Windows by simply providing " & _
+                     "WSCRIPT <scriptname.vbs> to execute your script in the WINDOWS Scripting Host, however I find that CScript, the Command Line Script Host is MUCH better to work with, if you plan to use vbScripting in " & _
+                     "in your daily maintenance and administrative chores."
+        wscript.quit 1
+    end if
 end sub
 
 sub CheckError(ErrorText)
-  if err = 0 then exit sub
-  wscript.stdout.writeline ErrorText & ": " & err.Number & " (0x" & hex(err) & "): " & err.Description
-  on error goto 0
-  wscript.quit 2
+    if err = 0 then exit sub
+    wscript.stdout.writeline ErrorText & ": " & err.Number & " (0x" & hex(err) & "): " & err.Description
+    on error goto 0
+    wscript.quit 2
 end sub
 
 sub ShowUsage(ShowHelp)
-  if(ShowHelp = true) then
-    wscript.stdout.WriteLine ""
-  end if
-  wscript.stdout.WriteLine ScriptName & " - System Uptime Tool (C) 2011 MLinks Technologies, Inc."
-  wscript.stdout.WriteLine "Version " & VERSION_INFO & " by Larry Frieson" & vbCRLF
-  if ShowHelp = true then
-    wscript.stdout.WriteLine "  Usage: " & ScriptName & " [options] {Computername/IP Address}"
-    wscript.stdout.WriteLine "  Where: [options] is one or more of the following:"
-    wscript.stdout.WriteLine "         -h         Display Help"
-    wscript.stdout.WriteLine "    And: {Computername} is the computer you want to check the uptime on."
-    wscript.stdout.WriteLine "         NOTE: If left blank, the local computer is checked."
-    wscript.stdout.WriteLine
-  end if
+    if(ShowHelp = true) then
+        wscript.stdout.WriteLine ""
+    end if
+    wscript.stdout.WriteLine ScriptName & " - System Uptime Tool (C) 2011 MLinks Technologies, Inc."
+    wscript.stdout.WriteLine "Version " & VERSION_INFO & " by Larry Frieson" & vbCRLF
+    if ShowHelp = true then
+        wscript.stdout.WriteLine "  Usage: " & ScriptName & " [options] {Computername/IP Address}"
+        wscript.stdout.WriteLine "  Where: [options] is one or more of the following:"
+        wscript.stdout.WriteLine "         -h         Display Help"
+        wscript.stdout.WriteLine "    And: {Computername} is the computer you want to check the uptime on."
+        wscript.stdout.WriteLine "         NOTE: If left blank, the local computer is checked."
+        wscript.stdout.WriteLine
+    end if
 end sub
-
